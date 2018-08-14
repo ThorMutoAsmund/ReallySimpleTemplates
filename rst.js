@@ -1,41 +1,42 @@
 class T {
-  static start(tag, attributes, end=false) {
-    return '<' + tag + attributes + (end ? ' />' : '>');
-  }
-
-  static end(tag) {
-    return '</' + tag + '>';
-  }
-  
-  static attrValue(value) {
-    return Array.isArray(value) ?
-      value.join(' ') : (
-        typeof value === 'object' ?
-        Object.keys(value).map(key => 
-          key + ':'+ value[key]).join(' ') :
-        value
-      );
-  }
-
-  static attributes(options) {
-    return !options ? '' :
-    ' ' + Object.keys(options).map(key => 
-      key + '="'+ T.attrValue(options[key]) +'"').join(' ');
-  }
-
   static cr(tag, options = null, children = null) {
     const emptyTags = ['area','base','br','col','command','embed','hr','img','input','keygen','link','meta','param','source','track','wbr'];
     
     if (children === null) {
       children = options; options = null;
     }
-    return emptyTags.indexOf(tag) == -1 ? 
-      T.start(tag, T.attributes(options)) +
-      (children === null ? '' : (Array.isArray(children) ?
-        children.join('') :
-        children)
-      ) + T.end(tag) : 
-      T.start(tag, T.attributes(options), true);
+
+    var element = document.createElement(tag);
+
+    if (options) {
+      Object.keys(options).map(function(key) {
+        var attrName = key;
+        if (key === 'class') {
+          attrName = 'className';
+        }
+        if (typeof options[key]  === 'object') {
+          Object.keys(options[key]).map(function(attrKey) {
+            element[attrName][attrKey] = options[key][attrKey];
+          });
+        }
+        else {
+          element[attrName] = options[key];
+        }
+      });
+    }
+
+    if (children) {
+      (Array.isArray(children)?children:[children]).forEach(function(child) {
+        if (typeof child === 'object') {
+          element.appendChild(child);
+        }
+        else {
+          element.innerText = child;
+        }
+      });
+    }
+
+    return element;
   }
   
   static register(window = null) {
@@ -50,7 +51,15 @@ class T {
 }
 
 function setContent(content) {
-  $('#content').html(content);
+  var container = document.getElementById('container');
+  if (Array.isArray(content)) {
+    content.forEach(function(element) {
+      container.appendChild(element);
+    });
+  }
+  else {
+    container.appendChild(content);
+  }
 }
 
 $(document).ready(function() {
@@ -64,18 +73,18 @@ $(document).ready(function() {
   //   )
   // );
  
-  var result = ul(
+  var result1 = ul(
     persons.map(p => 
-      li({'class':'red', 'style':{'font-weight': 'bold'}}, p.name)
+      li({'class':'red', 'style':{'font-weight': 'bold'}}, span(p.name))
     )
   );
 
-  result += div([
-    span(['Name:',b(persons[0].name)]),
+  var result2 = div([
+    span(['Name:', b(persons[0].name)]),
     br(),
     span(['Car:', b(persons[0].car)])
   ])
   
-  setContent(result);
+  setContent([result1, result2]);
 });
 
